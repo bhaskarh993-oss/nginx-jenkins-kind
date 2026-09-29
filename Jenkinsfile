@@ -87,52 +87,36 @@ pipeline {
         }
 
 
-        stage('Kubernetes Deploy') {
+            stage('Deploy to Kubernetes') {
+    steps {
+        sshagent(['kind-server']) {
+            sh '''
+                scp -o StrictHostKeyChecking=no \
+                    deployment.yaml \
+                    service.yaml \
+                    ingress.yaml \
+                    ubuntu@172.31.2.160:/home/ubuntu/
 
-            steps {
+                ssh -o StrictHostKeyChecking=no \
+                    ubuntu@172.31.2.160 "
+                        sed -i 's/IMAGE_TAG/${BUILD_NUMBER}/g' /home/ubuntu/deployment.yaml
 
-                sh '''
-                    kubectl apply -f deployment.yaml
+                        kubectl apply -f /home/ubuntu/deployment.yaml
+                        kubectl apply -f /home/ubuntu/service.yaml
+                        kubectl apply -f /home/ubuntu/ingress.yaml
 
-                    kubectl apply -f service.yaml
+                        kubectl rollout status deployment/java-app
 
-                    kubectl apply -f ingress.yaml
-
-                    kubectl set image \
-                    deployment/${DEPLOYMENT_NAME} \
-                    ${CONTAINER_NAME}=${DOCKER_IMAGE}:${IMAGE_TAG}
-                '''
-            }
-        }
-
-
-        stage('Deployment Verification') {
-
-            steps {
-
-                sh '''
-                    kubectl rollout status \
-                    deployment/${DEPLOYMENT_NAME} \
-                    --timeout=120s
-
-                    echo "===== NODES ====="
-
-                    kubectl get nodes
-
-                    echo "===== PODS ====="
-
-                    kubectl get pods
-
-                    echo "===== SERVICE ====="
-
-                    kubectl get svc
-
-                    echo  "====INGRESS======="
-
-                    kubectl get ingress
-                    
-                '''
+                        kubectl get pods
+                        kubectl get svc
+                        kubectl get ingress
+                    "
+            '''
             }
         }
     }
+
+
+      
+    
 }
