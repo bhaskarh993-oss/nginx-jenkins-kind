@@ -112,11 +112,8 @@ pipeline {
                         kubectl get ingress
                     "
             '''
+                }
             }
         }
     }
-
-
-      
-    
 }
